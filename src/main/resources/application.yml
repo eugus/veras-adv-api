@@ -1,0 +1,24 @@
+spring:
+  application:
+    name: veras-api
+
+  datasource:
+    url: jdbc:mysql://localhost:3306/veras_db
+    username: root
+    password: gustavo27
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    database-platform: org.hibernate.dialect.MySQL8Dialect
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+server:
+  port: 8080
+
+gemini:
+  api-key: AIzaSyCDJBE_XCu3_QqtPdmr47OFEg0cWkFFk1A
+  model: gemini-2.5-flash
