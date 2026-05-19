@@ -20,5 +20,5 @@ server:
   port: 8080
 
 gemini:
-  api-key: AIzaSyCDJBE_XCu3_QqtPdmr47OFEg0cWkFFk1A
+  api-key: AIzaSyDPqQ9XuhZTe8MLErvkTeW9siVO_0oEKgE
   model: gemini-2.5-flash
