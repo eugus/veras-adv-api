@@ -14,6 +14,14 @@ import feign.Response;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.net.URI;
@@ -59,6 +67,117 @@ public class DjenService {
         } catch (Exception e) {
             throw new RuntimeException("Erro ao importar intimações do DJEN: " + e.getMessage(), e);
         }
+    }
+
+    public Map<String, Object> importarMultiplosTribunais(
+            List<String> tribunais,
+            LocalDate dataInicial,
+            LocalDate dataFinal,
+            String meio,
+            String numeroOab,
+            String ufOab
+    ) {
+
+        long dias = ChronoUnit.DAYS.between(
+                dataInicial,
+                dataFinal
+        );
+
+        if (dias > 60) {
+            throw new RuntimeException(
+                    "O período máximo permitido é de 60 dias."
+            );
+        }
+
+        List<LocalDate> datas = gerarPeriodo(
+                dataInicial,
+                dataFinal
+        );
+
+        List<String> sucessos = Collections.synchronizedList(
+                new ArrayList<>()
+        );
+
+        Map<String, String> erros = new ConcurrentHashMap<>();
+
+        try (var executor =
+                     Executors.newVirtualThreadPerTaskExecutor()) {
+
+            List<Future<?>> futures = new ArrayList<>();
+
+            for (String tribunal : tribunais) {
+
+                for (LocalDate data : datas) {
+
+                    futures.add(
+                            executor.submit(() -> {
+
+                                String chave =
+                                        tribunal + " - " + data;
+
+                                try {
+
+                                    importarIntimacoesPorOab(
+                                            tribunal,
+                                            data,
+                                            meio,
+                                            numeroOab,
+                                            ufOab
+                                    );
+
+                                    sucessos.add(chave);
+
+                                } catch (Exception e) {
+
+                                    erros.put(
+                                            chave,
+                                            e.getMessage()
+                                    );
+                                }
+
+                                return null;
+                            })
+                    );
+                }
+            }
+
+            for (Future<?> future : futures) {
+                future.get();
+            }
+
+        } catch (Exception e) {
+
+            throw new RuntimeException(
+                    "Erro ao processar importações",
+                    e
+            );
+        }
+
+        return Map.of(
+                "totalTribunais", tribunais.size(),
+                "totalDias", datas.size(),
+                "totalTarefas",
+                tribunais.size() * datas.size(),
+                "sucessos", sucessos,
+                "erros", erros
+        );
+    }
+    private List<LocalDate> gerarPeriodo(
+            LocalDate dataInicial,
+            LocalDate dataFinal
+    ) {
+
+        List<LocalDate> datas = new ArrayList<>();
+
+        for (
+                LocalDate data = dataInicial;
+                !data.isAfter(dataFinal);
+                data = data.plusDays(1)
+        ) {
+            datas.add(data);
+        }
+
+        return datas;
     }
 
     private byte[] baixarZip(String urlZip) throws IOException {

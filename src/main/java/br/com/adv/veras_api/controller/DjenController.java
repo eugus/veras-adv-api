@@ -8,31 +8,33 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
+import java.util.List;
+import java.util.Map;
 
 @RestController
-@RequestMapping("/api/djen")
+@RequestMapping("api/djen")
 @RequiredArgsConstructor
 public class DjenController {
 
     private final DjenService djenService;
 
     @GetMapping("/importar")
-    public String importar(
-            @RequestParam String tribunal,
-            @RequestParam String data,
+    public Map<String, Object> importar(
+            @RequestParam List<String> tribunal,
+            @RequestParam String dataInicial,
+            @RequestParam String dataFinal,
             @RequestParam String meio,
             @RequestParam String oab,
             @RequestParam String uf
     ) {
 
-        djenService.importarIntimacoesPorOab(
+        return djenService.importarMultiplosTribunais(
                 tribunal,
-                LocalDate.parse(data),
+                LocalDate.parse(dataInicial),
+                LocalDate.parse(dataFinal),
                 meio,
                 oab,
                 uf
         );
-
-        return "Importação finalizada!";
     }
 }
